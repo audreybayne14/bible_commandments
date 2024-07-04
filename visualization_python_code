@@ -1,0 +1,75 @@
+# import packages
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from wordcloud import WordCloud
+from textblob import TextBlob
+
+# load data into df
+df = pd.read_excel('https://query.data.world/s/o26agquxjhrozgfimphwauxipkdofh?dws=00000')
+
+# display overview of data
+df.head
+
+# 1. Distribution of Commandments by Category
+plt.figure(figsize=(12, 16))  # Increase the figure height
+sns.countplot(y='mishneh_torah_category', data=df, order=df['mishneh_torah_category'].value_counts().index, palette='viridis')
+plt.title('Distribution of Commandments by Category', fontsize=14)
+plt.xlabel('Count', fontsize=12)
+plt.ylabel('Category', fontsize=12)
+plt.xticks(fontsize=10)
+plt.yticks(fontsize=10, rotation=0, ha='right')  # Rotate y-axis labels slightly
+plt.tight_layout()  # Adjust layout to ensure labels fit within the figure
+plt.show()
+
+# 2. Distribution of Commandments by Book
+plt.figure(figsize=(10, 6))
+sns.countplot(y='mishneh_torah_book_name', data=df, order=df['mishneh_torah_book_name'].value_counts().index)
+plt.title('Distribution of Commandments by Book')
+plt.xlabel('Count')
+plt.ylabel('Book')
+plt.show()
+
+# 3. Sentiment Analysis
+plt.figure(figsize=(6, 6))
+df['commandment_polarity'].value_counts().plot.pie(autopct='%1.1f%%', startangle=140, colors=['lightgreen', 'lightcoral'])
+plt.title('Proportion of Positive vs. Negative Commandments')
+plt.ylabel('')
+plt.show() 
+
+# 4. Word Cloud of Commandments Concepts
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(' '.join(df['commandment_concept'].dropna()))
+plt.figure(figsize=(10, 6))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Word Cloud of Commandments Concepts')
+plt.show()
+
+# 5. Heatmap by Polarity
+pivot_table = pd.pivot_table(df, values='commandment_number', 
+                             index='mishneh_torah_category', 
+                             columns='commandment_polarity', 
+                             aggfunc='count', fill_value=0)
+pivot_table = pivot_table.loc[(pivot_table != 0).any(axis=1)]
+plt.figure(figsize=(14, 20))  # Increase the figure size
+sns.heatmap(pivot_table, annot=True, cmap='coolwarm', cbar=True, linewidths=0.5, linecolor='gray')
+plt.title('Heatmap of Commandments by Category and Polarity', fontsize=16)
+plt.xlabel('Polarity', fontsize=14)
+plt.ylabel('Category', fontsize=14)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12, rotation=0) 
+plt.tight_layout() 
+plt.show()
+
+# 6. Sentiment Scores by Category
+df['sentiment'] = df['commandment_concept'].apply(lambda x: TextBlob(str(x)).sentiment.polarity)
+category_sentiment = df.groupby('mishneh_torah_category')['sentiment'].mean().sort_values()
+plt.figure(figsize=(14, 14))
+sns.barplot(x=category_sentiment, y=category_sentiment.index, palette='coolwarm')
+plt.title('Average Sentiment Score by Category', fontsize=16)
+plt.xlabel('Average Sentiment Score', fontsize=14)
+plt.ylabel('Category', fontsize=14)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+plt.tight_layout() 
+plt.show()
